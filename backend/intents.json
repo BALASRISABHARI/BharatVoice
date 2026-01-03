@@ -1,0 +1,49 @@
+{
+  "intents": [
+    {
+      "id": "GREETING",
+      "triggers": ["hello", "hi", "namaste", "vanakkam"],
+      "answers": {
+        "en": "Hello! I'm BharatVoice. How can I help you today?",
+        "ta": "வணக்கம்! நான் பாரத்வாய்ஸ். இன்று உங்களுக்கு எப்படி உதவ முடியும்?",
+        "hi": "नमस्ते! मैं भारतवॉयस हूं। आज मैं आपकी कैसे मदद कर सकता हूं?"
+      }
+    },
+    {
+      "id": "SCHOLARSHIP_STATUS",
+      "triggers": ["scholarship", "scholarship status", "education aid"],
+      "answers": {
+        "en": "You can check your scholarship status at nsp.gov.in or contact your institution.",
+        "ta": "nsp.gov.in இல் உங்கள் உதவித்தொகை நிலையைச் சரிபார்க்கலாம் அல்லது உங்கள் நிறுவனத்தைத் தொடர்பு கொள்ளலாம்.",
+        "hi": "आप nsp.gov.in पर अपनी छात्रवृत्ति की स्थिति जांच सकते हैं या अपने संस्थान से संपर्क कर सकते हैं।"
+      }
+    },
+    {
+      "id": "RATION_CARD",
+      "triggers": ["ration card", "apply ration", "food card"],
+      "answers": {
+        "en": "Apply for ration card at your local ration office or online at epds.gov.in",
+        "ta": "உங்கள் உள்ளூர் ரேஷன் அலுவலகத்தில் அல்லது epds.gov.in இல் ஆன்லைனில் ரேஷன் கார்டுக்கு விண்ணப்பிக்கவும்.",
+        "hi": "अपने स्थानीय राशन कार्यालय में या epds.gov.in पर ऑनलाइन राशन कार्ड के लिए आवेदन करें।"
+      }
+    },
+    {
+      "id": "AADHAAR_UPDATE",
+      "triggers": ["aadhaar", "update aadhaar", "uidai"],
+      "answers": {
+        "en": "Update Aadhaar details at uidai.gov.in or visit nearest Aadhaar centre.",
+        "ta": "uidai.gov.in இல் ஆதார் விவரங்களைப் புதுப்பிக்கவும் அல்லது அருகிலுள்ள ஆதார் மையத்தைப் பார்வையிடவும்.",
+        "hi": "uidai.gov.in पर आधार विवरण अपडेट करें या निकटतम आधार केंद्र पर जाएं।"
+      }
+    },
+    {
+      "id": "PENSION_STATUS",
+      "triggers": ["pension", "pension status", "old age pension"],
+      "answers": {
+        "en": "Check pension status at npci.org.in or contact your bank.",
+        "ta": "npci.org.in இல் ஓய்வூதிய நிலையைச் சரிபார்க்கவும் அல்லது உங்கள் வங்கியைத் தொடர்பு கொள்ளவும்.",
+        "hi": "npci.org.in पर पेंशन स्थिति जांचें या अपने बैंक से संपर्क करें।"
+      }
+    }
+  ]
+}

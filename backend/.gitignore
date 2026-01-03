@@ -1,0 +1,12 @@
+# Node
+node_modules/
+
+# Environment variables
+.env
+
+# Firebase / Google credentials
+service-accountKey.json
+
+# Upload folders
+uploads/
+test_uploads/
