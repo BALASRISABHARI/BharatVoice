@@ -34,9 +34,90 @@ BharatVoice is an AI-powered multilingual voice assistant application that enabl
 ---
 
 ## 🏗️ Architecture
-┌─────────────────┐ ┌──────────────────┐ ┌─────────────────────┐
-│ │ │ │ │ │
-│ Flutter │────▶│ Node.js │────▶│ Google Cloud │
-│ Frontend │◀────│ Backend │◀────│ APIs │
-│ │ │ │ │ │
-└─────────────────┘ └──────────────────┘ └─────────────────────┘
+📱 Frontend (Flutter)
+⬇️
+⚙️ Backend (Node.js)
+⬇️
+☁️ Google Cloud APIs
+├── Speech-to-Text
+├── Text-to-Speech
+└── AI Studio
+
+---
+
+## 🚀 Tech Stack
+
+### Frontend
+| Technology | Purpose |
+|------------|---------|
+| Flutter | Cross-platform mobile framework |
+| record | Audio recording |
+| audioplayers | Audio playback |
+| http | API communication |
+
+### Backend
+| Technology | Purpose |
+|------------|---------|
+| Node.js | Runtime environment |
+| Express | Web framework |
+| Multer | File upload handling |
+
+### Google Cloud Services
+| Service | Purpose |
+|---------|---------|
+| Speech-to-Text API | Voice transcription |
+| Text-to-Speech API | Voice synthesis |
+| Google AI Studio | Language processing |
+
+---
+
+## 📋 Prerequisites
+
+- ✅ Flutter SDK (3.x)
+- ✅ Node.js (18.x)
+- ✅ Google Cloud account with APIs enabled
+- ✅ Service account key for Google Cloud
+
+---
+
+Using the App
+📱 Tap the microphone button
+
+🗣️ Speak your query in English, Hindi, or Tamil
+
+⏳ Wait for processing
+
+🔊 Listen to the voice response
+
+💬 View chat history with timestamps
+
+bharatvoice/
+├── backend/
+│   ├── server.js
+│   ├── package.json
+│   └── service-accountKey.json
+├── frontend/
+│   ├── lib/
+│   │   └── main.dart
+│   ├── pubspec.yaml
+│   └── assets/
+│       └── mic.png
+└── README.md
+
+🌐 Language Support
+Language	Detection	Response	Voice Output
+English	✅	✅	✅
+Hindi	✅	✅	✅
+Tamil	✅	✅	✅
+
+🙏 Acknowledgments
+☁️ Google Cloud Platform for Speech APIs
+
+💙 Flutter community for excellent packages
+
+👥 Contributors and testers
+
+📧 Contact
+Your Name - BALASRISABHARI B - b.balasrisabhari@gmail.com
+
+<p align="center"> Made with ❤️ for Digital India </p> ```
