@@ -90,7 +90,7 @@ Using the App
 <img width="656" height="332" alt="image" src="https://github.com/user-attachments/assets/91282d34-f1d7-46db-ad70-a1369fc6c406" />
 
 
-##🙏 Acknowledgments
+## 🙏 Acknowledgments
 ☁️ Google Cloud Platform for Speech APIs
 
 💙 Flutter community for excellent packages
@@ -100,4 +100,4 @@ Using the App
 📧 Contact
 Your Name - BALASRISABHARI B - b.balasrisabhari@gmail.com
 
-<p align="center"> Made with ❤️ for Digital India </p> ```
+<p align="center"> Made with ❤️ for Digital India </p> 
