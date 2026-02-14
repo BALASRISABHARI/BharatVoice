@@ -34,14 +34,7 @@ BharatVoice is an AI-powered multilingual voice assistant application that enabl
 ---
 
 ## 🏗️ Architecture
-📱 Frontend (Flutter)
-⬇️
-⚙️ Backend (Node.js)
-⬇️
-☁️ Google Cloud APIs
-├── Speech-to-Text
-├── Text-to-Speech
-└── AI Studio
+<img width="249" height="285" alt="image" src="https://github.com/user-attachments/assets/6a53d2be-97ab-44dd-806b-11364650d2fe" />
 
 ---
 
@@ -91,26 +84,13 @@ Using the App
 
 💬 View chat history with timestamps
 
-bharatvoice/
-├── backend/
-│   ├── server.js
-│   ├── package.json
-│   └── service-accountKey.json
-├── frontend/
-│   ├── lib/
-│   │   └── main.dart
-│   ├── pubspec.yaml
-│   └── assets/
-│       └── mic.png
-└── README.md
+<img width="374" height="493" alt="image" src="https://github.com/user-attachments/assets/da577026-5efc-4f58-aa63-049e76bc9128" />
 
-🌐 Language Support
-Language	Detection	Response	Voice Output
-English	✅	✅	✅
-Hindi	✅	✅	✅
-Tamil	✅	✅	✅
 
-🙏 Acknowledgments
+<img width="656" height="332" alt="image" src="https://github.com/user-attachments/assets/91282d34-f1d7-46db-ad70-a1369fc6c406" />
+
+
+##🙏 Acknowledgments
 ☁️ Google Cloud Platform for Speech APIs
 
 💙 Flutter community for excellent packages
