@@ -44,6 +44,9 @@ class _VoiceHomeState extends State<VoiceHome> {
   List<Map<String, dynamic>> _chats = [];
   String _sessionId = '';
   String _currentLanguage = 'Auto';
+  String _currentLanguageCode = 'en';
+  String _activeService = '';
+  final TextEditingController _idController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
 
   // ✅ CORRECTED: Use your physical phone IP
@@ -185,6 +188,12 @@ class _VoiceHomeState extends State<VoiceHome> {
           final intent = data['intent']?.toString() ?? 'greeting';
           final confidence = data['confidence']?.toDouble() ?? 0.0;
           
+          if (['passport', 'aadhaar', 'ration', 'pension'].contains(intent)) {
+            _activeService = intent;
+          } else {
+            _activeService = '';
+          }
+          
           // Map language
           String languageDisplay = 'Auto';
           Color languageColor = Colors.grey;
@@ -213,6 +222,7 @@ class _VoiceHomeState extends State<VoiceHome> {
           
           setState(() {
             _currentLanguage = languageDisplay;
+            _currentLanguageCode = responseLanguage;
             _loading = false;
             _status = 'Response ready';
           });
@@ -265,6 +275,138 @@ class _VoiceHomeState extends State<VoiceHome> {
     }
   }
 
+  Future<void> sendTextToBackend(String text) async {
+    setState(() {
+      _loading = true;
+      _status = 'Sending...';
+      
+      // STEP 1: Add user message to chat UI
+      _chats.add({
+        'query': text,
+        'reply': '...',
+        'language': 'Auto',
+        'languageColor': Colors.grey.value,
+        'time': DateTime.now().toString().substring(11, 16),
+        'intent': 'Detecting...',
+        'confidence': 1.0,
+      });
+    });
+    
+    // Auto scroll to latest visually
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      }
+    });
+
+    try {
+      // STEP 2: Send text to backend via HTTP POST
+      final uri = Uri.parse('http://10.0.2.2:3000/query');
+      print('🔗 Connecting to Text Query: $uri');
+      
+      if (_sessionId.isEmpty) {
+        _sessionId = DateTime.now().millisecondsSinceEpoch.toString();
+      }
+      
+      final response = await http.post(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'session-id': _sessionId,
+        },
+        body: jsonEncode({'text': text}),
+      ).timeout(const Duration(seconds: 30));
+      
+      print('✅ Response status: ${response.statusCode}');
+      
+      // STEP 3: Receive response
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> data = jsonDecode(response.body);
+        
+        if (data['success'] == true) {
+          final reply = data['reply']?.toString() ?? '';
+          final hasAudio = data['hasAudio'] == true;
+          final audioContent = data['audioContent']?.toString();
+          final responseLanguage = data['language']?.toString() ?? 'en';
+          final intent = data['intent']?.toString() ?? 'query';
+          final confidence = data['confidence']?.toDouble() ?? 1.0;
+          
+          if (['passport', 'aadhaar', 'ration', 'pension'].contains(intent)) {
+            _activeService = intent;
+          } else {
+            _activeService = '';
+          }
+          
+          // Map languages visually
+          String languageDisplay = 'Auto';
+          Color languageColor = Colors.grey;
+          
+          if (responseLanguage == 'ta') { languageDisplay = 'தமிழ்'; languageColor = Colors.orange; }
+          else if (responseLanguage == 'hi') { languageDisplay = 'हिंदी'; languageColor = Colors.green; }
+          else if (responseLanguage == 'en') { languageDisplay = 'English'; languageColor = Colors.blue; }
+          else if (responseLanguage == 'te') { languageDisplay = 'తెలుగు'; languageColor = Colors.purple; }
+          else if (responseLanguage == 'mr') { languageDisplay = 'मराठी'; languageColor = Colors.red; }
+          
+          // STEP 4: Add response to chat (by updating our placeholder bot message)
+          setState(() {
+            _currentLanguage = languageDisplay;
+            _currentLanguageCode = responseLanguage;
+            _chats.last['reply'] = reply;
+            _chats.last['language'] = languageDisplay;
+            _chats.last['languageColor'] = languageColor.value;
+            _chats.last['intent'] = intent;
+            _chats.last['confidence'] = confidence;
+            
+            _loading = false;
+            _status = 'Response ready';
+          });
+          
+          // Force scroll again after UI redraw
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            if (_scrollController.hasClients) {
+              _scrollController.animateTo(
+                _scrollController.position.maxScrollExtent,
+                duration: const Duration(milliseconds: 300),
+                curve: Curves.easeOut,
+              );
+            }
+          });
+          
+          // STEP 5: Automatically play audio response
+          if (hasAudio && audioContent != null && audioContent.isNotEmpty) {
+            await _playResponseAudio(audioContent);
+          } else {
+            await Future.delayed(const Duration(seconds: 1));
+            setState(() => _status = 'Tap microphone');
+          }
+        } else {
+           setState(() {
+             _chats.last['reply'] = 'Error from server: ${data['error'] ?? "Unknown"}';
+             _loading = false;
+             _status = 'Error';
+           });
+        }
+      } else {
+        setState(() {
+           _chats.last['reply'] = 'Server returned error status ${response.statusCode}';
+           _loading = false;
+           _status = 'Server error';
+        });
+      }
+    } catch (e) {
+      print('❌ Network error: $e');
+      setState(() {
+        _chats.last['reply'] = 'Network error: ${e.toString().split(':').first}';
+        _status = 'Network error';
+        _loading = false;
+      });
+    }
+  }
+
   Future<void> _playResponseAudio(String base64Audio) async {
     try {
       setState(() {
@@ -306,6 +448,80 @@ class _VoiceHomeState extends State<VoiceHome> {
       setState(() {
         _playing = false;
         _status = 'Audio error';
+      });
+    }
+  }
+
+  Future<void> _checkStatus() async {
+    final id = _idController.text.trim();
+    if (id.isEmpty) return;
+    
+    final service = _activeService;
+    _idController.clear();
+    
+    setState(() {
+      _loading = true;
+      _status = 'Checking status...';
+      _chats.add({
+        'query': 'ID: $id',
+        'reply': '...',
+        'language': 'English',
+        'languageColor': Colors.blue.value,
+        'time': DateTime.now().toString().substring(11, 16),
+        'intent': 'status_check',
+        'confidence': 1.0,
+      });
+      _activeService = ''; // Hide field
+    });
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (_scrollController.hasClients) {
+        _scrollController.animateTo(_scrollController.position.maxScrollExtent, 
+          duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+      }
+    });
+
+    try {
+      final uri = Uri.parse('http://10.0.2.2:3000/get-status');
+      final response = await http.post(
+        uri,
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'id': id, 'service': service, 'language': _currentLanguageCode}),
+      ).timeout(const Duration(seconds: 30));
+      
+      if (response.statusCode == 200) {
+        final data = jsonDecode(response.body);
+        setState(() {
+          _chats.last['reply'] = data['message'];
+          _loading = false;
+          _status = 'Status received';
+        });
+        
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (_scrollController.hasClients) {
+             _scrollController.animateTo(_scrollController.position.maxScrollExtent, 
+                duration: const Duration(milliseconds: 300), curve: Curves.easeOut);
+          }
+        });
+
+        if (data['hasAudio'] == true && data['audioContent'] != null) {
+          await _playResponseAudio(data['audioContent']);
+        } else {
+          await Future.delayed(const Duration(seconds: 1));
+          setState(() => _status = 'Tap microphone');
+        }
+      } else {
+        setState(() {
+          _chats.last['reply'] = 'Server returned ${response.statusCode}';
+          _loading = false;
+          _status = 'Error';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _chats.last['reply'] = 'Network error: $e';
+        _loading = false;
+        _status = 'Error';
       });
     }
   }
@@ -434,24 +650,26 @@ class _VoiceHomeState extends State<VoiceHome> {
             // Chat History
             Expanded(
               child: _chats.isEmpty
-                  ? Center(
+                  ? SingleChildScrollView(
                       child: Padding(
                         padding: const EdgeInsets.all(20),
                         child: Column(
-                          mainAxisAlignment: MainAxisAlignment.center,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            Container(
-                              width: 100,
-                              height: 100,
-                              decoration: BoxDecoration(
-                                color: Colors.green.withOpacity(0.1),
-                                shape: BoxShape.circle,
-                                border: Border.all(color: Colors.green),
-                              ),
-                              child: const Icon(
-                                Icons.mic,
-                                size: 50,
-                                color: Colors.green,
+                            Center(
+                              child: Container(
+                                width: 80,
+                                height: 80,
+                                decoration: BoxDecoration(
+                                  color: Colors.green.withOpacity(0.1),
+                                  shape: BoxShape.circle,
+                                  border: Border.all(color: Colors.green),
+                                ),
+                                child: const Icon(
+                                  Icons.mic,
+                                  size: 40,
+                                  color: Colors.green,
+                                ),
                               ),
                             ),
                             const SizedBox(height: 20),
@@ -466,7 +684,7 @@ class _VoiceHomeState extends State<VoiceHome> {
                             ),
                             const SizedBox(height: 10),
                             const Text(
-                              'Speak in English, Tamil or Hindi',
+                              'Tap a service query below or hold the mic to ask:',
                               textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Colors.grey,
@@ -474,19 +692,36 @@ class _VoiceHomeState extends State<VoiceHome> {
                               ),
                             ),
                             const SizedBox(height: 30),
-                            Wrap(
-                              spacing: 10,
-                              runSpacing: 10,
-                              alignment: WrapAlignment.center,
-                              children: [
-                                _buildSuggestionChip('Hello', 'English'),
-                                _buildSuggestionChip('வணக்கம்', 'தமிழ்'),
-                                _buildSuggestionChip('नमस्ते', 'हिंदी'),
-                                _buildSuggestionChip('What time?', 'English'),
-                                _buildSuggestionChip('நேரம் என்ன?', 'தமிழ்'),
-                                _buildSuggestionChip('समय क्या है?', 'हिंदी'),
-                              ],
-                            ),
+                            ..._buildLanguageGroup('English', Colors.blue, [
+                              'Check my passport status',
+                              'Apply for ration card',
+                              'Check my pension status',
+                              'Update my Aadhaar details'
+                            ]),
+                            ..._buildLanguageGroup('தமிழ் (Tamil)', Colors.orange, [
+                              'என் பாஸ்போர்ட் நிலை என்ன?',
+                              'ரேஷன் கார்டு எப்படி விண்ணப்பிப்பது?',
+                              'என் ஓய்வூதியம் நிலை என்ன?',
+                              'ஆதார் விவரங்களை புதுப்பிக்கவும்'
+                            ]),
+                            ..._buildLanguageGroup('हिंदी (Hindi)', Colors.green, [
+                              'मेरा पासपोर्ट स्टेटस क्या है?',
+                              'राशन कार्ड के लिए कैसे आवेदन करें?',
+                              'मेरी पेंशन स्थिति क्या है?',
+                              'आधार विवरण अपडेट करें'
+                            ]),
+                            ..._buildLanguageGroup('తెలుగు (Telugu)', Colors.purple, [
+                              'నా పాస్పోర్ట్ స్థితి ఏమిటి?',
+                              'రేషన్ కార్డు కోసం ఎలా దరఖాస్తు చేయాలి?',
+                              'నా పెన్షన్ స్థితి ఏమిటి?',
+                              'ఆధార్ వివరాలు నవీకరించండి'
+                            ]),
+                            ..._buildLanguageGroup('मराठी (Marathi)', Colors.red, [
+                              'माझ्या पासपोर्टची स्थिती काय आहे?',
+                              'रेशन कार्डसाठी अर्ज कसा करावा?',
+                              'माझी पेन्शन स्थिती काय आहे?',
+                              'आधार तपशील अद्यतनित करा'
+                            ]),
                           ],
                         ),
                       ),
@@ -502,6 +737,47 @@ class _VoiceHomeState extends State<VoiceHome> {
                     ),
             ),
             
+            // ID Input Field Area
+            if (_activeService.isNotEmpty)
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                color: const Color(0xFF1E1E1E),
+                child: Row(
+                  children: [
+                    Expanded(
+                      child: TextField(
+                        controller: _idController,
+                        style: const TextStyle(color: Colors.white),
+                        decoration: InputDecoration(
+                          hintText: 'Enter your $_activeService ID...',
+                          hintStyle: const TextStyle(color: Colors.grey),
+                          filled: true,
+                          fillColor: const Color(0xFF252525),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10),
+                            borderSide: BorderSide.none,
+                          ),
+                          contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 10),
+                    ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Colors.blue,
+                        foregroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 16),
+                      ),
+                      onPressed: _loading ? null : _checkStatus,
+                      child: const Text('Check Status'),
+                    ),
+                  ],
+                ),
+              ),
+
             // Bottom Controls
             Container(
               padding: const EdgeInsets.all(16),
@@ -609,24 +885,46 @@ class _VoiceHomeState extends State<VoiceHome> {
     );
   }
 
-  Widget _buildSuggestionChip(String text, String language) {
-    Color color = Colors.grey;
-    if (language == 'English') color = Colors.blue;
-    if (language == 'தமிழ்') color = Colors.orange;
-    if (language == 'हिंदी') color = Colors.green;
-    
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-      decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: color),
+  List<Widget> _buildLanguageGroup(String title, Color color, List<String> bubbles) {
+    return [
+      Padding(
+        padding: const EdgeInsets.only(bottom: 10, top: 10),
+        child: Text(
+          title,
+          style: TextStyle(color: color, fontSize: 16, fontWeight: FontWeight.bold),
+        ),
       ),
-      child: Text(
-        text,
-        style: TextStyle(
-          color: color,
-          fontSize: 13,
+      Wrap(
+        spacing: 12,
+        runSpacing: 12,
+        alignment: WrapAlignment.start,
+        children: bubbles.map((text) => buildBubble(text, color)).toList(),
+      ),
+      const SizedBox(height: 20),
+    ];
+  }
+
+  Widget buildBubble(String text, Color color) {
+    return Material(
+      color: Colors.transparent,
+      child: InkWell(
+        onTap: () => sendTextToBackend(text),
+        borderRadius: BorderRadius.circular(20),
+        child: Ink(
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.15),
+            borderRadius: BorderRadius.circular(20),
+            border: Border.all(color: color.withOpacity(0.5)),
+          ),
+          child: Text(
+            text,
+            style: TextStyle(
+              color: color.withOpacity(0.9),
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
         ),
       ),
     );
